@@ -23,11 +23,6 @@ public class Producer {
 	public static final String CPU_MQ_NAME = "CPU_MQ";
 	
 	/**
-	 * The JMS Connection object.
-	 */
-	private Connection connection;
-
-	/**
 	 * The MQ Session object.
 	 */
 	private Session session;
@@ -44,7 +39,7 @@ public class Producer {
 	public Producer() throws JMSException {
 		// Get JMS connection from the server and starting it
         ConnectionFactory connectionFactory = new ActiveMQConnectionFactory(url);
-        connection = connectionFactory.createConnection();
+        final Connection connection = connectionFactory.createConnection();
         connection.start();
 
         // Use a non-transactional session object.
@@ -62,7 +57,11 @@ public class Producer {
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			public void run() {
 				System.out.println("Received ctrl-c. Shutting down connections");
-				connection.close();
+				try {
+					connection.close();
+				} catch (JMSException e) {
+					System.out.println("Error occurred when closing connection: " + e.getMessage());
+				}
 			}
 		});
 	}
@@ -80,7 +79,7 @@ public class Producer {
 				CpuPerc perc = sigar.getCpuPerc();
 				double cpuUsage = perc.getCombined();
 
-				// TODO. Send 'cpuUsage' into a message queue
+				// Send 'cpuUsage' into the message queue
 				ObjectMessage message = session.createObjectMessage(new Double(cpuUsage));
 				producer.send(message);
 				System.out.println("CPU Usage: " + cpuUsage );
