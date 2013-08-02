@@ -1,4 +1,4 @@
-package RecentCPUData;
+package HistoricalCPUData;
 
 import javax.jms.Session;
 import javax.jms.ConnectionFactory;
@@ -8,15 +8,12 @@ import javax.jms.JMSException;
 import javax.jms.Destination;
 import javax.jms.TextMessage;
 import javax.jms.MessageConsumer;
-import javax.jms.MessageProducer;
 
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
 
 /**
- * Receives CPU usage measurements, displays (last minute of data) and pushes
- * them onto another message queue to be collected by another process (for storing
- * all historical data).
+ * Receives CPU usage measurements, and saves into a database.
  */
 public class Consumer {
 
@@ -28,12 +25,6 @@ public class Consumer {
 	/**
 	 * The name of the queue the CPU usage data/messages will be received from.
 	 */
-	public static final String CPU_MQ_NAME = "CPU_MQ";
-	
-	/**
-	 * A second queue is used to send the CPU data to another process which
-	 * will store all the historical data.
-	 */
 	public static final String CPU_MQ_HIST_NAME = "CPU_MQ_HIST";
 
 	/**
@@ -41,16 +32,6 @@ public class Consumer {
 	 */
 	private MessageConsumer consumer;
 	
-	/**
-	 * The MQ Session object.
-	 */
-	private Session session;
-
-	/**
-	 * The {@code MessageProducer} object used for sending messages to the queue.
-	 */
-	private MessageProducer producer;
-
 
 	/**
 	 * Creates and initialises the queue.
@@ -62,17 +43,13 @@ public class Consumer {
         connection.start();
 
         // Use a non-transactional session object.
-        session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
         // Create the queue
-        Destination destination = session.createQueue(CPU_MQ_NAME);
+        Destination destination = session.createQueue(CPU_MQ_HIST_NAME);
 
         // Create a MessageConsumer for receiving the messages
         consumer = session.createConsumer(destination);
-		
-        // Create a MessageProducer for resending messages to the second queue
-        Destination historicalDataQueueDest = session.createQueue(CPU_MQ_HIST_NAME);
-        producer = session.createProducer(historicalDataQueueDest);
 
 		// Create a shutdown hook, since the user has to press ctrl-c to shutdown
 		// this process. We need to shutdown gracefully (i.e. close the connection first)
@@ -103,9 +80,6 @@ public class Consumer {
 					
 					// TODO: Process the received data
 					System.out.println("Received message '" + textMessage.getText() + "'");
-
-					// Send the data to the historical data queue
-					producer.send(textMessage);
 				}
 			}
 		}
