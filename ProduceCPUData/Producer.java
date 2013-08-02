@@ -1,11 +1,20 @@
 package ProduceCPUData;
 
-import java.io.*;
-import java.util.*;
-import java.lang.*;
-import org.hyperic.sigar.*;
-import javax.jms.*;
-import org.apache.activemq.*;
+import org.hyperic.sigar.CpuPerc;
+import org.hyperic.sigar.Sigar;
+import org.hyperic.sigar.SigarException;
+
+import javax.jms.Session;
+import javax.jms.ConnectionFactory;
+import javax.jms.Connection;
+import javax.jms.Message;
+import javax.jms.JMSException;
+import javax.jms.Destination;
+import javax.jms.TextMessage;
+import javax.jms.MessageProducer;
+
+import org.apache.activemq.ActiveMQConnection;
+import org.apache.activemq.ActiveMQConnectionFactory;
 
 /**
  * Takes CPU usage measurements and pushes them onto the message queue.

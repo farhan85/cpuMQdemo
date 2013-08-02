@@ -1,11 +1,16 @@
 package RecentCPUData;
 
-import java.io.*;
-import java.util.*;
-import java.lang.*;
-import javax.jms.*;
+import javax.jms.Session;
+import javax.jms.ConnectionFactory;
+import javax.jms.Connection;
 import javax.jms.Message;
-import org.apache.activemq.*;
+import javax.jms.JMSException;
+import javax.jms.Destination;
+import javax.jms.TextMessage;
+import javax.jms.MessageConsumer;
+
+import org.apache.activemq.ActiveMQConnection;
+import org.apache.activemq.ActiveMQConnectionFactory;
 
 /**
  * Takes CPU usage measurements and pushes them onto the message queue.
