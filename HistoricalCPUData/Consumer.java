@@ -31,7 +31,12 @@ public class Consumer {
 	 * The {@code MessageConsumer} object used for receiving messages to the queue.
 	 */
 	private MessageConsumer consumer;
-	
+
+	/**
+	 * The DBConnector for storing the received data into the database.
+	 */
+	DBConnector db;
+
 
 	/**
 	 * Creates and initialises the queue.
@@ -51,6 +56,9 @@ public class Consumer {
         // Create a MessageConsumer for receiving the messages
         consumer = session.createConsumer(destination);
 
+		// Create the DB connector
+		db = new DBConnector();
+
 		// Create a shutdown hook, since the user has to press ctrl-c to shutdown
 		// this process. We need to shutdown gracefully (i.e. close the connection first)
 		Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -58,6 +66,7 @@ public class Consumer {
 				System.out.println("Received ctrl-c. Shutting down connections");
 				try {
 					connection.close();
+					db.close();
 				} catch (JMSException e) {
 					System.out.println("Error occurred when closing connection: " + e.getMessage());
 				}
@@ -78,8 +87,17 @@ public class Consumer {
 				if (message instanceof TextMessage) {
 					TextMessage textMessage = (TextMessage) message;
 					
-					// TODO: Process the received data
+					// Process the received data (save it to the database)
 					System.out.println("Received message '" + textMessage.getText() + "'");
+					String[] usageData = textMessage.getText().split(',');
+
+					try {
+						long timestamp = Long.parseLong(usageData[0]);
+						double usage = Double.parseDouble(usageData[1]);
+						db.addCpuUsage(timestamp, usage);
+					} catch (NumberFormatException e) {
+						System.out.println("Error. Could not convert either " + usageData[0] + " to a long or " + usageData[1] + " to a double");
+					}
 				}
 			}
 		}
