@@ -75,11 +75,16 @@ public class Consumer {
 		});
 	}
 	
+	/**
+	 * Runs this program. Uses a MessageListener to wait for messages.
+	 */
 	public void run() {
 		System.out.println("Press ctrl-c to stop this program");
 		
 		while (true) {
 			try {
+				// Block this thread. Most of the work is done through the
+				// private MessageListener class.
 				System.in.read();
 			} catch (IOException e) {
 			}

@@ -76,21 +76,24 @@ public class Consumer {
 	}
 
 	/**
-	 * Takes periodic measurements of the total CPU usage (as a percentage)
-	 * and pushes them onto the message queue.
+	 * Runs this program. Uses a MessageListener to wait for messages.
 	 */
-	
 	public void run() {
 		System.out.println("Press ctrl-c to stop this program");
 		
 		while (true) {
 			try {
+				// Block this thread. Most of the work is done through the
+				// private MessageListener class.
 				System.in.read();
 			} catch (IOException e) {
 			}
 		}
 	}
-	
+
+	/**
+	 * Prints the stored data (recent history) on screen.
+	 */
 	public void printData() {
 		for (CpuInfo info : previousCpuInfo.getData()) {
 			System.out.print("(" + info.getTimestamp() + "," + info.getCpuUsage() + ") ");
