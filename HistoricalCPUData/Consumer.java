@@ -1,13 +1,16 @@
 package HistoricalCPUData;
 
-import javax.jms.Session;
-import javax.jms.ConnectionFactory;
+import java.io.IOException;
+
 import javax.jms.Connection;
-import javax.jms.Message;
+import javax.jms.ConnectionFactory;
 import javax.jms.JMSException;
-import javax.jms.Destination;
-import javax.jms.TextMessage;
+import javax.jms.Message;
 import javax.jms.MessageConsumer;
+import javax.jms.MessageListener;
+import javax.jms.Session;
+import javax.jms.TextMessage;
+import javax.jms.Topic;
 
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
@@ -23,14 +26,9 @@ public class Consumer {
     private static String url = ActiveMQConnection.DEFAULT_BROKER_URL;
 
 	/**
-	 * The name of the queue the CPU usage data/messages will be received from.
+	 * The name of the queue the CPU usage data/messages will be sent to.
 	 */
-	public static final String CPU_MQ_HIST_NAME = "CPU_MQ_HIST";
-
-	/**
-	 * The {@code MessageConsumer} object used for receiving messages to the queue.
-	 */
-	private MessageConsumer consumer;
+	public static final String CPU_TOPIC_NAME = "CPU_TOPIC";
 
 	/**
 	 * The DBConnector for storing the received data into the database.
@@ -50,11 +48,12 @@ public class Consumer {
         // Use a non-transactional session object.
         Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
-        // Create the queue
-        Destination destination = session.createQueue(CPU_MQ_HIST_NAME);
+		// Create the topic
+		Topic topic = session.createTopic(CPU_TOPIC_NAME);
 
         // Create a MessageConsumer for receiving the messages
-        consumer = session.createConsumer(destination);
+		MessageConsumer consumer = session.createConsumer(topic);
+        consumer.setMessageListener(new CpuUsageMessageListener());
 
 		// Create the DB connector
 		db = new DBConnector();
@@ -64,32 +63,52 @@ public class Consumer {
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			public void run() {
 				System.out.println("Received ctrl-c. Shutting down connections");
+
 				try {
 					connection.close();
-					db.close();
 				} catch (JMSException e) {
 					System.out.println("Error occurred when closing connection: " + e.getMessage());
 				}
+
+				db.close();
 			}
 		});
 	}
+	
+	public void run() {
+		System.out.println("Press ctrl-c to stop this program");
+		
+		while (true) {
+			try {
+				System.in.read();
+			} catch (IOException e) {
+			}
+		}
+	}
+
+    public static void main(String[] args) throws Exception {
+		Consumer cons = new Consumer();
+		cons.run();
+	}
 
 	/**
-	 * Takes periodic measurements of the total CPU usage (as a percentage)
-	 * and pushes them onto the message queue.
+	 * When it receives a new message containing the total CPU usage (as a percentage),
+	 * it saves the CPU usage data to the database.
 	 */
-    public void run() {
-		try {
-			while (true) {
-				// Wait for the next message
-				Message message = consumer.receive();
-				
+	private class CpuUsageMessageListener implements MessageListener {
+
+		/**
+		 * Saves the received message to the database.
+		 * @param messsage The recieved message.
+		 */
+		public void onMessage(Message message) {
+			try {
 				if (message instanceof TextMessage) {
 					TextMessage textMessage = (TextMessage) message;
 					
 					// Process the received data (save it to the database)
 					System.out.println("Received message '" + textMessage.getText() + "'");
-					String[] usageData = textMessage.getText().split(',');
+					String[] usageData = textMessage.getText().split(",");
 
 					try {
 						long timestamp = Long.parseLong(usageData[0]);
@@ -99,17 +118,10 @@ public class Consumer {
 						System.out.println("Error. Could not convert either " + usageData[0] + " to a long or " + usageData[1] + " to a double");
 					}
 				}
+			} catch (JMSException e) {
+				System.out.println("Error occurred when creating/sending a message to the message queue: " + e.getMessage());
 			}
 		}
-		catch (JMSException e) {
-			System.out.println("Error occurred when creating/sending a message to the message queue: " + e.getMessage());
-		}
-    }
-
-    public static void main(String[] args) throws Exception {
-		System.out.println("Press ctrl-c to stop this program");
-		Consumer cons = new Consumer();
-		cons.run();
 	}
 
 } 

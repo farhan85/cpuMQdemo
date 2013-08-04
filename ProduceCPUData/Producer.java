@@ -4,20 +4,20 @@ import org.hyperic.sigar.CpuPerc;
 import org.hyperic.sigar.Sigar;
 import org.hyperic.sigar.SigarException;
 
-import javax.jms.Session;
 import javax.jms.ConnectionFactory;
 import javax.jms.Connection;
-import javax.jms.Message;
 import javax.jms.JMSException;
-import javax.jms.Destination;
-import javax.jms.TextMessage;
+import javax.jms.Message;
 import javax.jms.MessageProducer;
+import javax.jms.Session;
+import javax.jms.TextMessage;
+import javax.jms.Topic;
 
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
 
 /**
- * Takes CPU usage measurements and pushes them onto the message queue.
+ * Takes CPU usage measurements and pushes them onto the message topic.
  */
 public class Producer {
 
@@ -27,10 +27,10 @@ public class Producer {
     private static String url = ActiveMQConnection.DEFAULT_BROKER_URL;
 
 	/**
-	 * The name of the queue the CPU usage data/messages will be sent to.
+	 * The name of the queue/topic the CPU usage data/messages will be sent to.
 	 */
-	public static final String CPU_MQ_NAME = "CPU_MQ";
-	
+	public static final String CPU_TOPIC_NAME = "CPU_TOPIC";
+
 	/**
 	 * The MQ Session object.
 	 */
@@ -54,12 +54,11 @@ public class Producer {
         // Use a non-transactional session object.
         session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
-        // Create the queue
-        Destination destination = session.createQueue(CPU_MQ_NAME);
+		// Create the topic
+		Topic topic = session.createTopic(CPU_TOPIC_NAME);
 
-        // Create a MessageProducer is used for sending messages (as opposed
-        // to MessageConsumer which is used for receiving them)
-        producer = session.createProducer(destination);
+        // Create a MessageProducer for sending messages
+		producer = session.createProducer(topic);
 
 		// Create a shutdown hook, since the user has to press ctrl-c to shutdown
 		// this process. We need to shutdown gracefully (i.e. close the connection first)
@@ -80,6 +79,7 @@ public class Producer {
 	 * and pushes them onto the message queue.
 	 */
     public void run() {
+		System.out.println("Press ctrl-c to stop this program");
         Sigar sigar = new Sigar();
 
 		try {
@@ -110,7 +110,6 @@ public class Producer {
     }
 
     public static void main(String[] args) throws Exception {
-		System.out.println("Press ctrl-c to stop this program");
 		Producer prod = new Producer();
 		prod.run();
 	}

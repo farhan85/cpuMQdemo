@@ -40,8 +40,8 @@ public class DBConnector {
 	private void initializeDB() {
 		try {
 			String createTblSQL = "CREATE TABLE cpu_usage ("+
-				" ts INTEGER NOT NULL PRIMARY KEY," + // Timestamp
-				" usage DECIMAL NOT NULL" +           // Actual CPU usage value
+				" ts BIGINT NOT NULL PRIMARY KEY," +  // Timestamp
+				" usage DOUBLE NOT NULL" +           // Actual CPU usage value
 				");";
 			Statement st = connection.createStatement();
 			st.execute(createTblSQL);
