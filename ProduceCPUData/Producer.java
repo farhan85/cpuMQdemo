@@ -93,7 +93,7 @@ public class Producer {
 				TextMessage message = session.createTextMessage(tNow + "," + cpuUsage);
 				producer.send(message);
 				System.out.println("t: " + tNow + ", CPU Usage: " + cpuUsage);
-				
+
 				// Wait 10 seconds before measuring the CPU usage again
 				Thread.sleep(10000);
 			}

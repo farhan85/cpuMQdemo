@@ -31,6 +31,11 @@ public class Consumer {
 	 * The name of the queue the CPU usage data/messages will be sent to.
 	 */
 	public static final String CPU_TOPIC_NAME = "CPU_TOPIC";
+	
+	/**
+	 * The list of the previous (fixed number) of received CPU usage data.
+	 */
+	FixedSizeList<Pair<Long, Double>> previousData;
 
 
 	/**
@@ -52,6 +57,9 @@ public class Consumer {
         //consumer = session.createConsumer(destination);
 		MessageConsumer consumer = session.createConsumer(topic);
         consumer.setMessageListener(new CpuUsageMessageListener());
+		
+		// Store a minute's worth of data
+		previousData = new FixedSizeList<Pair<Long, Double>>(6);
 
 		// Create a shutdown hook, since the user has to press ctrl-c to shutdown
 		// this process. We need to shutdown gracefully (i.e. close the connection first)
@@ -82,6 +90,13 @@ public class Consumer {
 			}
 		}
 	}
+	
+	public void printData() {
+		for (Pair<Long, Double> item : previousData.getData()) {
+			System.out.print("(" + item.getFirst() + "," + item.getSecond() + ") ");
+		}
+		System.out.println();
+	}
 
     public static void main(String[] args) throws Exception {
 		Consumer cons = new Consumer();
@@ -102,9 +117,16 @@ public class Consumer {
 			try {
 				if (message instanceof TextMessage) {
 					TextMessage textMessage = (TextMessage) message;
+					String[] usageData = textMessage.getText().split(",");
 					
-					// TODO: Process the received data
-					System.out.println("Received message '" + textMessage.getText() + "'");
+					try {
+						Long timestamp = new Long(usageData[0]);
+						Double usage = new Double(usageData[1]);
+						previousData.add(new Pair<Long,Double>(timestamp, usage));
+						printData();
+					} catch (NumberFormatException e) {
+						System.out.println("Error. Could not convert either " + usageData[0] + " to a long or " + usageData[1] + " to a double");
+					}
 				}
 			} catch (JMSException e) {
 				System.out.println("Error occurred when creating/sending a message to the message queue: " + e.getMessage());

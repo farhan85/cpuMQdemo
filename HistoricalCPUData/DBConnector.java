@@ -64,7 +64,7 @@ public class DBConnector {
 			query.setDouble(2, usage);
 			
 			int numRows = query.executeUpdate();
-			
+
 			if (numRows != 1) {
 				System.out.println("Error. Value (ts=" + timestamp + ", usage=" + usage + ") could not be inserted into DB");
 			}
