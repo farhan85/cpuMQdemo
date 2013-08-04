@@ -35,7 +35,7 @@ public class Consumer {
 	/**
 	 * The list of the previous (fixed number) of received CPU usage data.
 	 */
-	FixedSizeList<Pair<Long, Double>> previousData;
+	FixedSizeList<CpuInfo> previousCpuInfo;
 
 
 	/**
@@ -59,7 +59,7 @@ public class Consumer {
         consumer.setMessageListener(new CpuUsageMessageListener());
 		
 		// Store a minute's worth of data
-		previousData = new FixedSizeList<Pair<Long, Double>>(6);
+		previousCpuInfo = new FixedSizeList<CpuInfo>(6);
 
 		// Create a shutdown hook, since the user has to press ctrl-c to shutdown
 		// this process. We need to shutdown gracefully (i.e. close the connection first)
@@ -92,8 +92,8 @@ public class Consumer {
 	}
 	
 	public void printData() {
-		for (Pair<Long, Double> item : previousData.getData()) {
-			System.out.print("(" + item.getFirst() + "," + item.getSecond() + ") ");
+		for (CpuInfo info : previousCpuInfo.getData()) {
+			System.out.print("(" + info.getTimestamp() + "," + info.getCpuUsage() + ") ");
 		}
 		System.out.println();
 	}
@@ -120,9 +120,9 @@ public class Consumer {
 					String[] usageData = textMessage.getText().split(",");
 					
 					try {
-						Long timestamp = new Long(usageData[0]);
-						Double usage = new Double(usageData[1]);
-						previousData.add(new Pair<Long,Double>(timestamp, usage));
+						long timestamp = Long.parseLong(usageData[0]);
+						double usage = Double.parseDouble(usageData[1]);
+						previousCpuInfo.add(new CpuInfo(timestamp, usage));
 						printData();
 					} catch (NumberFormatException e) {
 						System.out.println("Error. Could not convert either " + usageData[0] + " to a long or " + usageData[1] + " to a double");
